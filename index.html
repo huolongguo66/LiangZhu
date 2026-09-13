@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>景点详情页</title>
+    <!-- ECharts CDN -->
+    <script src="js/echarts.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: "Microsoft Yahei", sans-serif;
+            line-height: 1.6;
+            background-color: #f5f5f5;
+        }
+        /* ========== 1.顶部全屏大图 ========== */
+        .banner-full {
+            width: 100%;
+            height: 70vh;
+            overflow: hidden;
+        }
+        .banner-full img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+        /* ========== 2.简介区域 ========== */
+        .info-wrap {
+            width: 90%;
+            max-width: 1200px;
+            margin: 40px auto;
+            display: flex;
+            gap: 30px;
+            background: #fff;
+            padding: 25px;
+            border-radius: 8px;
+        }
+        .info-left {
+            width: 320px;
+            flex-shrink: 0;
+        }
+        .info-left img {
+            width: 100%;
+            border-radius: 6px;
+        }
+        .info-right {
+            flex: 1;
+        }
+        .info-right h2 {
+            font-size: 26px;
+            margin-bottom: 15px;
+        }
+        .info-right p {
+            font-size: 16px;
+            color: #444;
+        }
+        /* ========== 3.ECharts可视化区域 ========== */
+        .chart-wrap {
+            width: 90%;
+            max-width: 1200px;
+            margin: 0 auto 50px;
+            background: #fff;
+            padding: 25px;
+            border-radius: 8px;
+        }
+        .chart-item {
+            width: 100%;
+            height: 420px;
+            margin-bottom: 40px;
+            border: 1px solid #eee;
+        }
+        /* AI分析框 */
+        .ai-text {
+            width: 100%;
+            padding: 20px;
+            background: #f8f8f8;
+            border-radius: 6px;
+            margin-bottom: 30px;
+        }
+        /* ========== 4.底部返回按钮 ========== */
+        .back-home-box {
+            text-align: center;
+            padding: 60px 0;
+        }
+        .back-home {
+            padding: 14px 40px;
+            background: #2266cc;
+            color: #fff;
+            text-decoration: none;
+            font-size: 18px;
+            border-radius: 6px;
+        }
+    </style>
+</head>
+<body>
+<!-- 顶部全屏大图 -->
+<section class="banner-full">
+    <img src="img/liangzhu1.jpg" alt="景点全景大图">
+</section>
+
+<!-- 简介模块 -->
+<section class="info-wrap">
+    <div class="info-left">
+        <img src="img/lianngzhu2.jpg" alt="景点缩略图">
+    </div>
+    <div class="info-right">
+        <h2>良渚古城遗址</h2>
+        <p>
+            良渚古城遗址坐落于杭州余杭瓶窑镇，2019 年正式列入《世界文化遗产名录》，是实证中华五千年文明史的核心圣地，距今约 5300 至 4300 年。遗址整体占地超 100 平方公里，完整留存三重城郭、中国最早大型山前水利系统、高等级贵族墓葬与成套玉礼器遗存，出土玉琮王、玉璧等国宝级玉器，清晰展现新石器时代成熟稻作文明与早期国家礼制体系。配套良渚博物院、古城遗址公园，兼具考古研学、自然观光双重文旅价值，是长江下游史前文明最具代表性的文旅地标。
+        </p>
+    </div>
+</section>
+
+<!-- 图表+AI区域 -->
+<section class="chart-wrap">
+    <h3 style="margin-bottom:20px;">良渚古城遗址数据可视化分析</h3>
+    <!-- 图表1：一周客流（柱状/鼠标悬浮切换折线） -->
+    <div id="chart-line" class="chart-item"></div>
+    <!-- 图表2：单日分时双折线 -->
+    <div id="chart-pie" class="chart-item"></div>
+    <!-- 图表3：游客出行目的柱状图（保留#43c2ad→#b2e89c渐变） -->
+    <div id="chart-bar" class="chart-item"></div>
+
+    <!-- AI研判模块 -->
+    <div class="ai-text">
+        <h4>AI数据智能研判：</h4>
+        <select id="ai-select" style="padding:6px;margin-bottom:10px;border-radius:4px;border:1px solid #ccc;">
+            <option value="all">综合全景分析</option>
+            <option value="flow">客流时间分析</option>
+            <option value="consume">消费结构分析</option>
+            <option value="relation">客流消费相关性分析</option>
+        </select>
+        <div id="ai-content" style="white-space:pre-line;">AI分析结果加载区域</div>
+        <button onclick="getAiData()" style="padding:6px 12px;cursor:pointer;border:none;background:#43c2ad;color:#fff;border-radius:4px;margin-top:8px;">点击生成智能分析</button>
+    </div>
+</section>
+
+<!-- 返回首页 -->
+<section class="back-home-box">
+    <a href="index.html" class="back-home">返回项目首页地图</a>
+</section>
+
+<script>
+var myChart1 = echarts.init(document.getElementById('chart-line'));
+var myChart2 = echarts.init(document.getElementById('chart-pie'));
+var myChart3 = echarts.init(document.getElementById('chart-bar'));
+
+// ========== 图表1：四季月度客流面积图（高级交互：缩放、图例、hover淡化） ==========
+const monthX = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+var option1 = {
+  title:{text:"良渚古城遗址 分季节月度客流趋势",left:"center"},
+  tooltip: {trigger: 'axis'},
+  legend: {data:['春季','夏季','秋季','冬季'],top:30},
+  toolbox: {show:true,feature:{saveAsImage:{},dataView:{}}},
+  dataZoom: [{type:'slider',start:0,end:100}],
+  grid: {left:'5%',right:'5%',bottom:'15%'},
+  xAxis: {type:'category',data:monthX,axisLine:{lineStyle:{color:'#ccc'}}},
+  yAxis: {type:'value',name:'客流指数',splitLine:{lineStyle:{type:'dashed',color:'#eee'}}},
+  series:[
+    {
+      name:'春季',type:'line',smooth:true,areaStyle:{color:new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:'rgba(67,194,173,0.4)'},{offset:1,color:'rgba(67,194,173,0.05)'}])},
+      data:[30,34,52,70,86,64,50,54,68,82,56,36],emphasis:{focus:'series'}
+    },
+    {
+      name:'夏季',type:'line',smooth:true,areaStyle:{color:new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:'rgba(245,166,35,0.4)'},{offset:1,color:'rgba(245,166,35,0.05)'}])},
+      data:[22,26,40,62,76,72,66,70,64,74,48,28],emphasis:{focus:'series'}
+    },
+    {
+      name:'秋季',type:'line',smooth:true,areaStyle:{color:new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:'rgba(80,140,220,0.4)'},{offset:1,color:'rgba(80,140,220,0.05)'}])},
+      data:[26,30,46,66,82,68,60,62,74,88,62,32],emphasis:{focus:'series'}
+    },
+    {
+      name:'冬季',type:'line',smooth:true,areaStyle:{color:new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:'rgba(160,120,220,0.4)'},{offset:1,color:'rgba(160,120,220,0.05)'}])},
+      data:[16,20,32,48,64,52,44,46,52,68,42,24],emphasis:{focus:'series'}
+    }
+  ]
+};
+myChart1.setOption(option1);
+
+// ========== 图表2：各片区游览时长堆叠面积图 ==========
+var option2 = {
+  title:{text:"良渚各片区游客平均游览时长（单位：分钟）",left:"center"},
+  tooltip:{trigger:'axis'},
+  legend:{data:["良渚博物院","莫角山宫殿","反山王陵","鹿苑"],top:30},
+  toolbox: {show:true,feature:{saveAsImage:{}}},
+  grid:{left:'5%',right:'5%',bottom:'12%'},
+  xAxis:{type:'category',data:['9点','10点','11点','12点','13点','14点','15点','16点']},
+  yAxis:{type:'value',name:'时长(分钟)'},
+  series:[
+    {name:"良渚博物院",type:'line',stack:'total',smooth:true,areaStyle:{opacity:0.35},data:[45,52,58,40,44,50,46,38],emphasis:{focus:'series'}},
+    {name:"莫角山宫殿",type:'line',stack:'total',smooth:true,areaStyle:{opacity:0.35},data:[32,38,42,30,34,36,34,28],emphasis:{focus:'series'}},
+    {name:"反山王陵",type:'line',stack:'total',smooth:true,areaStyle:{opacity:0.35},data:[26,30,34,24,26,30,28,22],emphasis:{focus:'series'}},
+    {name:"鹿苑",type:'line',stack:'total',smooth:true,areaStyle:{opacity:0.35},data:[18,22,24,16,18,20,19,14],emphasis:{focus:'series'}}
+  ]
+};
+myChart2.setOption(option2);
+
+// ========== 图表3：各片区满意度柱状图【每个柱子独立渐变】 ==========
+var option3 = {
+  title:{text:"良渚各片区游客满意度评分（满分10）",left:"center"},
+  tooltip:{trigger:'axis'},
+  xAxis:{type:'category',data:['良渚博物院','莫角山宫殿','反山王陵','鹿苑','外围水利遗址']},
+  yAxis:{type:'value',min:0,max:10,name:'满意度'},
+  series:[{
+    name:"评分",type:'bar',barWidth:'45%',
+    itemStyle:{
+      borderRadius:[6,6,0,0],
+      color:function(params){
+        // 5根柱子，各自渐变
+        const gradientList = [
+          new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:'#43c2ad'},{offset:1,color:'#b2e89c'}]),
+          new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:'#62a8ea'},{offset:1,color:'#b5d8ff'}]),
+          new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:'#a074e8'},{offset:1,color:'#d8c6ff'}]),
+          new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:'#f5a623'},{offset:1,color:'#ffdd99'}]),
+          new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:'#f26b6b'},{offset:1,color:'#ffbcbc'}])
+        ]
+        return gradientList[params.dataIndex];
+      },
+      emphasis:{shadowBlur:18,shadowColor:'rgba(80,180,180,0.55)'}
+    },
+    data:[9.2,8.8,9.0,8.3,8.1]
+  }]
+};
+myChart3.setOption(option3);
+
+// ===================== AI分析模块【修复快速点击文字重叠bug】 =====================
+const aiTextMap = {
+    all: `【综合全景分析】
+良渚客流高峰集中在春秋两季，10月客流最高，冬季整体人流量最低。
+不同片区游览时长差异明显：良渚博物院耗时最长，建议预留45分钟以上；莫角山、反山王陵是核心古迹片区。
+满意度上，良渚博物院与反山王陵评分最高；鹿苑和外围水利遗址评分略低。
+出行建议：春秋季节适合游览；一日游优先博物院+反山王陵，合理分配游览时间。`,
+
+    flow: `【客流时间维度分析】
+春秋（3-5月、9-10月）气候舒适，客流达到峰值；夏季暴晒、冬季寒冷，游客数量下降。
+10月黄金周客流全年最高，1、2月客流最少。
+时间规划：避开10月假期；3、4月或者11月来，人少、气温舒适，适合长时间徒步逛遗址。`,
+
+    consume: `【游客消费结构分析】
+良渚游客的消费主要是门票、博物院人工讲解、玉文化文创。
+长时间游览的研学团更愿意购买讲解服务；散客大多自带简餐，景区餐饮消费偏低。
+可推出博物院+反山王陵联票、研学讲解套餐。`,
+
+    relation: `【客流与消费相关性分析】
+春秋旺季研学团数量暴涨，停留时间长，文创、讲解消费意愿更强。
+冬季淡季以历史爱好者散客为主，游览节奏慢，但消费较少。
+旺季增加讲解员，淡季推出小众遗址专题导览，提升淡季吸引力。`
+};
+
+// 全局定时器标记
+let typeTimer = null;
+
+function typeWrite(element, text, speed = 30) {
+    if(typeTimer){
+        clearInterval(typeTimer);
+        typeTimer = null;
+    }
+    element.innerHTML = "";
+    let index = 0;
+    typeTimer = setInterval(()=>{
+        if(index >= text.length){
+            clearInterval(typeTimer);
+            typeTimer = null;
+            return;
+        }
+        element.innerHTML += text.charAt(index);
+        index++;
+    }, speed);
+}
+
+window.getAiData = async function() {
+    const dom = document.getElementById('ai-content');
+    // 打断正在执行的打字动画
+    if(typeTimer){
+        clearInterval(typeTimer);
+        typeTimer = null;
+    }
+    dom.innerHTML = "AI思考中...";
+    await new Promise(resolve=>setTimeout(resolve,600));
+    const selectedType = document.getElementById('ai-select').value;
+    const text = aiTextMap[selectedType];
+    typeWrite(dom, text);
+}
+
+// 窗口自适应
+window.addEventListener('resize', function() {
+  myChart1.resize();
+  myChart2.resize();
+  myChart3.resize();
+})
+</script>
+
+
+
+</body>
+</html>
